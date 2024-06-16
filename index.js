@@ -30,6 +30,7 @@ async function run() {
     const projectsCollection = db.collection("projects");
     const blogCollection = db.collection("blogs");
     const educationCollection = db.collection("education");
+    const userCollection = db.collection("users");
 
     //get api
 
@@ -116,6 +117,71 @@ async function run() {
       const result = await educationCollection.insertOne(education);
       console.log(result);
       res.json(result);
+    });
+
+    //user registration
+    app.post("/api/v1/register", async (req, res) => {
+      // const { name, email, password, role } = req.body;
+      const name = "Debabrata Saha";
+      const email = "sahadebabrata570@gmail.com";
+      const password = "123456";
+      const role = "Super Admin";
+
+      // Check if email already exists
+      const existingUser = await userCollection.findOne({ email });
+      if (existingUser) {
+        return res.status(400).json({
+          success: false,
+          message: "User already exists",
+        });
+      }
+
+      // Hash the password
+      // const hashedPassword = await bcrypt.hash(password, 10);
+
+      // Insert user into the database
+      await userCollection.insertOne({
+        name,
+        email,
+        password,
+        role,
+      });
+
+      res.status(201).json({
+        success: true,
+        message: "User registered successfully",
+      });
+    });
+
+    // User Login
+    app.post("/api/v1/login", async (req, res) => {
+      const { email, password } = req.body;
+
+      // Find user by email
+      const user = await userCollection.findOne({ email });
+      if (!user) {
+        console.log("here");
+        return res.status(401).json({ message: "Invalid email or password" });
+      }
+
+      if (password !== user.password) {
+        return res.status(401).json({ message: "Invalid email or password" });
+      }
+
+      // Generate JWT token
+      const token = jwt.sign(
+        { email: user.email, name: user.name, role: user.role },
+        process.env.JWT_SECRET,
+        {
+          expiresIn: process.env.EXPIRES_IN,
+        }
+      );
+
+      res.json({
+        success: true,
+        message: "Login successful",
+        token,
+      });
     });
 
     //Delete api
